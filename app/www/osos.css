@@ -1,0 +1,242 @@
+/* ============================================================
+   CIDE OSOS — hoja de estilos de la app
+   Expediente técnico de scouting: azul marino de club, superficie
+   blanca sobre gris frío, Barlow Condensed para títulos y cifras.
+   ============================================================ */
+
+/* Fuentes incluidas en la app (licencia OFL): funcionan sin internet */
+@font-face { font-family: "Barlow"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url("fonts/barlow-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("fonts/barlow-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("fonts/barlow-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 500; font-display: swap;
+  src: url("fonts/barlow-condensed-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 600; font-display: swap;
+  src: url("fonts/barlow-condensed-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url("fonts/barlow-condensed-latin-700-normal.woff2") format("woff2"); }
+
+:root {
+  --tinta: #0E2240;
+  --tinta-2: #1B3A63;
+  --papel: #F3F5F8;
+  --superficie: #FFFFFF;
+  --linea: #DCE1E8;
+  --linea-fuerte: #B9C2CE;
+  --texto: #0E2240;
+  --texto-2: #46566C;
+  --texto-3: #6E7C8F;
+  --datos: #2E6DA4;
+  --acento: #B8862B;
+  --acento-claro: #E2B85A;
+  --bien: #1E7A5A;
+  --mal: #B23A3A;
+  --resalte: #FBF3DF;
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --texto-base: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html, body { background: var(--superficie); }
+body {
+  font-family: var(--texto-base);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--texto);
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4 { font-family: var(--display); color: var(--tinta); letter-spacing: 0.005em; }
+h2 { font-size: 34px; font-weight: 700; line-height: 1.05; margin: 0 0 6px 0; }
+h3 { font-size: 23px; font-weight: 600; margin: 34px 0 6px 0; }
+h4 { font-size: 19px; font-weight: 600; margin: 22px 0 8px 0; }
+p { max-width: 82ch; }
+a { color: var(--datos); }
+a:hover, a:focus { color: var(--tinta-2); }
+:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+/* ── Barra de navegacion ─────────────────────────────────── */
+.navbar.navbar-default {
+  background: var(--tinta);
+  border: 0;
+  border-radius: 0;
+  margin-bottom: 0;
+  min-height: 56px;
+}
+.navbar-default .navbar-brand {
+  height: 56px;
+  padding: 0 28px 0 18px;
+  display: flex; align-items: center;
+  color: #FFFFFF;
+}
+.osos-marca { display: flex; align-items: center; gap: 12px; }
+.osos-marca svg { display: block; }
+.osos-marca-nombre {
+  font-family: var(--display); font-weight: 700; font-size: 24px; color: #FFFFFF; line-height: 1;
+}
+.osos-marca-sub { font-size: 12.5px; color: #AFC0D6; line-height: 1.15; border-left: 1px solid #3A5578; padding-left: 12px; }
+.navbar-default .navbar-nav > li > a {
+  font-family: var(--display);
+  font-size: 18px; font-weight: 500;
+  color: #D5DEEA;
+  padding: 18px 16px 15px 16px;
+  border-bottom: 3px solid transparent;
+}
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > li > a:focus { color: #FFFFFF; background: transparent; }
+.navbar-default .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .active > a:hover,
+.navbar-default .navbar-nav > .active > a:focus,
+.navbar-default .navbar-nav > .open > a,
+.navbar-default .navbar-nav > .open > a:hover,
+.navbar-default .navbar-nav > .open > a:focus {
+  color: #FFFFFF; background: transparent; border-bottom-color: var(--acento-claro);
+}
+.navbar-default .navbar-nav .dropdown-menu {
+  border: 1px solid var(--linea); border-radius: 0 0 6px 6px; box-shadow: 0 10px 24px rgba(14, 34, 64, 0.12);
+  padding: 6px 0; min-width: 230px;
+}
+.navbar-default .navbar-nav .dropdown-menu > li > a {
+  font-family: var(--texto-base); font-size: 14.5px; color: var(--texto); padding: 8px 18px;
+}
+.navbar-default .navbar-nav .dropdown-menu > li > a:hover { background: var(--papel); color: var(--tinta); }
+.navbar-default .navbar-nav .dropdown-menu > .active > a,
+.navbar-default .navbar-nav .dropdown-menu > .active > a:hover {
+  background: var(--resalte); color: var(--tinta); font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--acento);
+}
+.navbar-default .navbar-toggle { border-color: #3A5578; }
+.navbar-default .navbar-toggle .icon-bar { background: #FFFFFF; }
+
+/* ── Barra de contexto (selector de jugador) ─────────────── */
+.osos-contexto {
+  background: var(--papel);
+  border-bottom: 1px solid var(--linea);
+  padding: 10px 22px 0 22px;
+  margin-bottom: 26px;
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+}
+.osos-contexto .form-group { margin-bottom: 10px; }
+.osos-contexto-info { font-size: 12.5px; color: var(--texto-3); text-align: right; padding-bottom: 12px; line-height: 1.35; }
+.osos-contexto-info strong { color: var(--texto-2); font-weight: 600; }
+
+/* ── Contenido ───────────────────────────────────────────── */
+.tab-content > .tab-pane > .container-fluid { max-width: 1280px; margin: 0 auto; padding: 0 22px 60px 22px; }
+.osos-encabezado { margin: 4px 0 22px 0; padding-bottom: 14px; border-bottom: 1px solid var(--linea); }
+.osos-encabezado p { color: var(--texto-2); font-size: 15px; margin: 6px 0 0 0; }
+
+/* Linea de estadisticas: cifras separadas por filetes, sin cajas */
+.osos-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); margin: 4px 0 20px 0; border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); }
+.osos-stat { padding: 12px 16px 11px 0; margin-right: 16px; border-right: 1px solid var(--linea); }
+.osos-stat:last-child { border-right: 0; }
+.osos-stat-valor { font-family: var(--display); font-size: 30px; font-weight: 600; line-height: 1.05; color: var(--tinta); }
+.osos-stat-titulo { font-size: 13px; color: var(--texto-2); font-weight: 600; margin-top: 2px; }
+.osos-stat-detalle { font-size: 12.5px; color: var(--texto-3); }
+
+/* Nota metodologica */
+.osos-nota { border-left: 3px solid var(--acento); background: var(--papel); padding: 11px 16px; font-size: 13.5px; color: var(--texto-2); line-height: 1.6; margin: 12px 0; max-width: 100%; }
+.osos-nota strong { color: var(--tinta); }
+
+/* Bloque destacado (p. ej. formacion recomendada) */
+.osos-destacado { background: var(--resalte); border: 1px solid var(--linea); border-left: 4px solid var(--acento); padding: 14px 18px; margin-bottom: 16px; }
+.osos-destacado-titulo { font-size: 13px; color: var(--texto-2); font-weight: 600; }
+.osos-destacado-valor { font-family: var(--display); font-size: 34px; font-weight: 700; color: var(--tinta); line-height: 1.05; }
+
+/* Filtros */
+.well { background: var(--papel); border: 1px solid var(--linea); border-radius: 6px; box-shadow: none; padding: 14px 16px 4px 16px; }
+.well.well-sm { padding: 12px 14px 2px 14px; }
+label, .control-label { font-size: 13px; font-weight: 600; color: var(--texto-2); margin-bottom: 4px; }
+.form-control, .selectize-input {
+  border: 1px solid var(--linea-fuerte); border-radius: 4px; box-shadow: none; font-size: 14.5px; color: var(--texto);
+  min-height: 36px;
+}
+.selectize-input.focus, .form-control:focus { border-color: var(--datos); box-shadow: 0 0 0 2px rgba(46, 109, 164, 0.18); }
+.selectize-dropdown { border-color: var(--linea-fuerte); font-size: 14.5px; }
+.selectize-dropdown .active { background: var(--papel); color: var(--tinta); }
+.checkbox label { font-weight: 500; color: var(--texto); }
+
+/* Botones */
+.btn { border-radius: 4px; font-weight: 600; font-size: 14.5px; }
+.btn-default { border-color: var(--linea-fuerte); color: var(--tinta); }
+.btn-primary, .btn-success { background: var(--tinta); border-color: var(--tinta); color: #FFFFFF; }
+.btn-primary:hover, .btn-success:hover, .btn-primary:focus, .btn-success:focus { background: var(--tinta-2); border-color: var(--tinta-2); color: #FFFFFF; }
+
+/* Sub-pestanas: subrayado, no pastillas */
+.nav-pills, .nav-tabs { border-bottom: 1px solid var(--linea); margin-bottom: 18px; }
+.nav-pills > li > a, .nav-tabs > li > a {
+  border-radius: 0; border: 0; color: var(--texto-2); font-family: var(--display); font-size: 18px; font-weight: 500;
+  padding: 8px 4px; margin-right: 22px; border-bottom: 3px solid transparent; background: transparent;
+}
+.nav-pills > li.active > a, .nav-pills > li.active > a:hover, .nav-pills > li.active > a:focus,
+.nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {
+  background: transparent; color: var(--tinta); border: 0; border-bottom: 3px solid var(--acento);
+}
+.nav-pills > li > a:hover, .nav-tabs > li > a:hover { background: transparent; color: var(--tinta); }
+
+/* Avisos */
+.alert { border-radius: 0; border: 0; border-left: 3px solid var(--linea-fuerte); background: var(--papel); color: var(--texto-2); font-size: 14px; }
+.alert-warning { border-left-color: var(--acento); background: #FDF8EC; color: #5A4513; }
+.alert-info { border-left-color: var(--datos); background: #F1F6FB; color: var(--tinta-2); }
+.alert-danger { border-left-color: var(--mal); background: #FBF1F1; color: #6B2020; }
+.alert-secondary { border-left-color: var(--linea-fuerte); }
+
+/* ── Tablas (DT) ─────────────────────────────────────────── */
+table.dataTable { font-size: 14px; color: var(--texto); border-collapse: collapse !important; background: var(--superficie); }
+table.dataTable thead th {
+  font-family: var(--texto-base); font-weight: 600; font-size: 12.5px; color: var(--texto-2);
+  border-bottom: 1.5px solid var(--tinta) !important; padding: 8px 10px !important; vertical-align: bottom;
+}
+table.dataTable tbody td { border-top: 1px solid var(--linea) !important; padding: 7px 10px !important; }
+table.dataTable.stripe tbody tr.odd, table.dataTable.display tbody tr.odd,
+table.dataTable.stripe tbody tr.odd > .sorting_1, table.dataTable.display tbody tr.odd > .sorting_1 { background-color: var(--superficie) !important; }
+table.dataTable tbody tr:hover > td { background-color: #F7F9FB; }
+table.dataTable.no-footer { border-bottom: 1px solid var(--linea) !important; }
+.dataTables_wrapper .dataTables_paginate .paginate_button { border-radius: 4px; font-size: 13px; }
+body .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+body .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+  background: var(--tinta) !important; color: #FFFFFF !important; border-color: var(--tinta) !important;
+}
+.dataTables_wrapper .dataTables_filter input { border: 1px solid var(--linea-fuerte); border-radius: 4px; padding: 4px 8px; }
+/* Con scrollX, DataTables clona el encabezado dentro del cuerpo: debe quedar con alto 0 */
+body .dataTables_scrollBody thead th, body .dataTables_scrollBody thead td {
+  padding-top: 0 !important; padding-bottom: 0 !important; border-bottom: 0 !important;
+  background-image: none !important; height: 0 !important; line-height: 0 !important;
+}
+body .dataTables_scrollBody thead th:before, body .dataTables_scrollBody thead th:after { display: none !important; }
+caption { caption-side: bottom; color: var(--texto-3); font-size: 12.5px; padding-top: 6px; }
+
+/* Imagenes de graficas */
+.shiny-image-output img { max-width: 100%; height: auto; }
+
+/* ── Resumen (inicio) ────────────────────────────────────── */
+.osos-tesis { font-family: var(--display); font-size: 52px; font-weight: 700; line-height: 1.0; color: var(--tinta); margin: 18px 0 14px 0; max-width: 18ch; }
+.osos-tesis-sub { font-size: 17px; color: var(--texto-2); max-width: 62ch; margin-bottom: 8px; }
+.osos-evidencia { border-top: 1.5px solid var(--tinta); margin-top: 8px; }
+.osos-evidencia-fila { display: grid; grid-template-columns: 170px 1fr; gap: 18px; padding: 13px 0; border-bottom: 1px solid var(--linea); align-items: baseline; }
+.osos-evidencia-cifra { font-family: var(--display); font-size: 30px; font-weight: 600; color: var(--tinta); line-height: 1; }
+.osos-evidencia-texto strong { display: block; color: var(--tinta); font-weight: 600; }
+.osos-evidencia-texto span { color: var(--texto-2); font-size: 14px; }
+.osos-limite { padding: 9px 0; border-bottom: 1px solid var(--linea); color: var(--texto-2); font-size: 14px; }
+.osos-limite strong { color: var(--tinta); }
+.osos-rutas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--linea); margin-top: 6px; }
+.osos-ruta { padding: 14px 18px 14px 0; border-right: 1px solid var(--linea); margin-right: 18px; }
+.osos-ruta:last-child { border-right: 0; }
+.osos-ruta-titulo { font-family: var(--display); font-size: 21px; font-weight: 600; color: var(--tinta); }
+.osos-ruta p { font-size: 13.5px; color: var(--texto-2); margin: 4px 0 0 0; }
+
+/* Ficha del jugador (reporte) */
+.osos-ficha { background: var(--tinta); color: #FFFFFF; padding: 20px 24px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+.osos-ficha-nombre { font-family: var(--display); font-size: 42px; font-weight: 700; line-height: 1; }
+.osos-ficha-datos { color: #C3D0E0; font-size: 14.5px; margin-top: 6px; }
+.osos-ficha-pct { text-align: right; }
+.osos-ficha-pct-valor { font-family: var(--display); font-size: 48px; font-weight: 700; color: var(--acento-claro); line-height: 1; }
+.osos-ficha-pct-texto { color: #AFC0D6; font-size: 13px; }
+
+@media (max-width: 900px) {
+  .osos-tesis { font-size: 38px; }
+  .osos-rutas { grid-template-columns: 1fr 1fr; }
+  .osos-evidencia-fila { grid-template-columns: 1fr; gap: 4px; }
+  .osos-contexto-info { text-align: left; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

@@ -1,0 +1,558 @@
+---
+pagetitle: "Los entrenadores del América, contados con datos"
+output:
+  html_document:
+    theme: null
+    highlight: null
+    mathjax: null
+    self_contained: true
+    css: estilo.css
+    section_divs: false
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.align = "left",
+                      dpi = 150, fig.width = 10, fig.height = 5.2)
+knitr::opts_knit$set(root.dir = normalizePath(".."))
+if (requireNamespace("ragg", quietly = TRUE) && requireNamespace("systemfonts", quietly = TRUE)) {
+  f <- function(x) normalizePath(file.path("fonts", x))
+  systemfonts::register_font("Barlow", plain = f("barlow-latin-400-normal.ttf"), bold = f("barlow-latin-600-normal.ttf"))
+  knitr::opts_chunk$set(dev = "ragg_png")
+}
+```
+
+```{r datos}
+suppressPackageStartupMessages({ library(dplyr); library(tidyr); library(purrr); library(tibble) })
+source("R/funciones_modelo.R")
+source("R/funciones_entrenador.R")
+source("reporte/funciones_reporte.R")
+o <- readRDS("data/processed/entrenadores.rds")
+if (!requireNamespace("systemfonts", quietly = TRUE) || !requireNamespace("ragg", quietly = TRUE))
+  tema_rep <- function(base = 13) ggplot2::theme_minimal(base_size = base) + theme(legend.position = "none", plot.title.position = "plot")
+ENT <- o$entrenadores
+ctx <- o$contexto %>% mutate(entrenador = as.character(entrenador))
+col <- colores_de(ENT)
+fecha <- function(d) { m <- c("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+  paste(m[as.integer(format(d, "%m"))], format(d, "%Y")) }
+n_letra <- c("Un", "Dos", "Tres", "Cuatro", "Cinco", "Seis")[length(ENT)]
+h <- function(ent, k, campo = "valor") { v <- o$huella[[campo]][o$huella$entrenador == ent & o$huella$kpi == k]; if (length(v)) as.numeric(v[1]) else NA_real_ }
+mejor_ppg <- ctx %>% slice_max(pts_partido, n = 1)
+dif_suerte <- ctx %>% mutate(d = pts_partido - xpts_partido) %>% arrange(desc(d))
+```
+
+```{=html}
+<nav class="rep-nav" aria-label="Secciones"><div class="rep-nav-in"><span class="marca">CIDE OSOS</span><a href="#resumen">Resumen</a><a href="#marco">Cómo lo medimos</a><a href="#contexto">Contexto</a><a href="#huella">Huella</a><a href="#ataque">Ataque</a><a href="#defensa">Defensa</a><a href="#ajustes">Ajustes</a><a href="#evolucion">Evolución</a><a href="#jugadores">Jugadores</a><a href="#balon-parado">Balón parado</a><a href="#accion">Qué hacer</a><a href="#anexo">Anexo</a></div></nav>
+```
+
+::: {.portada}
+::: {.portada-in}
+<h1>`r n_letra` entrenadores, un mismo club</h1>
+
+<p class="tesis">De `r paste(ENT[-length(ENT)], collapse = ", ")` a `r tail(ENT, 1)`: qué idea de juego tuvo cada uno en el América, cómo la ajustó según el rival, el marcador y el minuto, y qué parte de sus resultados se explica por el juego y qué parte por la suerte.</p>
+
+<p class="creditos">`r format(o$n_posesiones, big.mark = ",")` posesiones de `r format(o$n_partidos_liga, big.mark = ",")` partidos de Liga MX con eventos y 360 de Hudl StatsBomb, `r fecha(min(o$periodo$desde))` a `r fecha(max(o$periodo$hasta))`. Equipo CIDE OSOS · Hackathon ISAC 2026.</p>
+
+::: {.portada-graf}
+```{r portada, fig.height = 3.6, fig.width = 11}
+graf_linea_tiempo(o)
+```
+:::
+:::
+:::
+
+::: {.seccion #resumen}
+## Lo que hay que saber
+
+```{r resumen, results = "asis"}
+b <- c()
+pl_mejor <- ctx %>% slice_max(z_plantel, n = 1)
+b <- c(b, sprintf("**%s es el que más puntos sacó por partido** (%s). %s",
+                  mejor_ppg$entrenador, num(mejor_ppg$pts_partido, 2),
+                  if (pl_mejor$entrenador == mejor_ppg$entrenador) "También tuvo el plantel de más calidad individual: parte del mérito es de la plantilla."
+                  else sprintf("El plantel de más calidad individual lo tuvo %s.", pl_mejor$entrenador)))
+s1 <- dif_suerte[1, ]; s2 <- dif_suerte[nrow(dif_suerte), ]
+b <- c(b, sprintf("**Las ocasiones explican casi todo, pero no todo.** Con las mismas ocasiones jugadas infinitas veces, %s habría sacado %s puntos por partido menos de los que sacó; a %s le faltaron %s.",
+                  s1$entrenador, num(s1$pts_partido - s1$xpts_partido, 2), s2$entrenador, num(abs(s2$pts_partido - s2$xpts_partido), 2)))
+if (!is.null(o$reconocer)) {
+  r <- o$reconocer
+  b <- c(b, if (r$p_valor < 0.05)
+    sprintf("**Cada entrenador deja una huella reconocible.** Viendo solo el estilo de un partido (no el resultado), un modelo adivina quién dirigía en %s de los casos, contra %s por azar (prueba de permutación: p = %s).",
+            pct(100 * r$acierto), pct(100 * r$azar), formatC(r$p_valor, format = "g", digits = 2))
+  else
+    sprintf("**Los estilos se parecen más de lo que parece.** Viendo solo el estilo de un partido, un modelo adivina al entrenador en %s de los casos, contra %s por azar: no se distingue del azar (p = %s). Las diferencias están en pocos rasgos, no en todo el juego.",
+            pct(100 * r$acierto), pct(100 * r$azar), formatC(r$p_valor, format = "g", digits = 2)))
+}
+ef <- o$efecto %>% filter(p < 0.05, kpi %in% KPIS_ESTILO_REP)
+if (nrow(ef) > 0)
+  b <- c(b, sprintf("**Lo que más cambia de un entrenador a otro es %s**: el entrenador explica %s de las diferencias entre partidos. %s",
+                    tolower(ef$etiqueta[1]), pct(100 * ef$eta2[1]),
+                    if (nrow(ef) > 1) paste0("Le siguen ", tolower(ef$etiqueta[2]), if (nrow(ef) > 2) paste0(" y ", tolower(ef$etiqueta[3])), ".") else ""))
+if (!is.null(o$desarrollo)) {
+  dr <- o$desarrollo$resumen %>% filter(entrenador %in% ENT, casos >= 15)
+  mej <- dr %>% filter(lo > 0) %>% arrange(desc(mejora))
+  if (nrow(mej) > 0)
+    b <- c(b, sprintf("**%s hizo crecer a sus jugadores.** Los que siguieron en el club mejoraron su índice %s por encima de lo que se espera para su nivel, edad y posición, más que el %s%% de los clubes-torneo de la liga.",
+                      mej$entrenador[1], signo(mej$mejora[1]), mej$percentil[1]))
+}
+ult <- o$ultimo
+b <- c(b, sprintf("**%s, hoy:** %s.", ult, rasgos(o, ult, 2)))
+cat(paste0("- ", b, collapse = "\n"))
+```
+:::
+
+::: {.seccion #marco}
+## Cómo lo medimos
+
+<p class="lede">Antes de mirar un solo partido definimos qué es cada cosa que se cuenta. Así, una gráfica de presión y una de transiciones hablan del mismo objeto y se pueden comparar entre entrenadores.</p>
+
+<dl class="marco">
+<dt>Posesión</dt><dd>Tramo continuo en que un equipo controla el balón. Usamos el número de posesión de StatsBomb; el dueño es el equipo con más acciones con balón (pases, conducciones, tiros, regates).</dd>
+<dt>Inicio de la posesión</dt><dd><em>Recuperación</em> si el rival tenía el balón en juego y se lo quitamos; <em>desde el portero</em> si arranca en un saque de meta o con el balón en manos del portero; <em>balón parado</em> si viene de un córner o de un tiro libre o lateral en el último tercio; <em>reanudación</em> si es un tiro libre o lateral más atrás; <em>saque inicial</em> después de un gol. Por cómo StatsBomb corta las posesiones, casi todas las demás empiezan quitándole el balón al rival.</dd>
+<dt>Secuencia ofensiva y sus fases</dt><dd>Cada posesión propia, de principio a fin. <em>Construcción</em>: empieza en nuestro tercio (x &lt; 40 de 120). <em>Progresión</em>: llega al medio (x ≥ 40) y al último tercio (x ≥ 80). <em>Finalización</em>: termina en tiro.</dd>
+<dt>Transición ofensiva</dt><dd>Posesión que empieza con una recuperación. Es <em>rápida</em> si llega al último tercio en `r o$parametros$seg_rapida_ult3` segundos o menos, o termina en tiro en `r o$parametros$seg_rapida_tiro` o menos.</dd>
+<dt>Transición defensiva</dt><dd>Posesión del rival que empieza porque perdimos el balón en juego.</dd>
+<dt>Fase de presión</dt><dd>Nuestras presiones durante una posesión del rival. Se resume con presiones por posesión rival, PPDA (pases que el rival da en su 60% de cancha por cada acción defensiva nuestra ahí) y la altura a la que recuperamos.</dd>
+<dt>Contrapresión eficaz</dt><dd>Perder el balón en juego y recuperarlo en `r o$parametros$seg_contrapresion` segundos o menos.</dd>
+</dl>
+
+### Supuestos
+
+- La cancha mide 120 × 80 y cada equipo ataca hacia x = 120; los carriles izquierdo, central y derecho son tercios del ancho, vistos desde quien ataca.
+- Medimos lo que genera el juego con xG sin penales.
+- **Todo se compara contra lo que hace la liga en la misma situación.** Cuando un equipo va perdiendo, cualquiera arriesga más; lo que dice algo del entrenador es cuánto más o menos que el resto. Lo mismo con la localía, el nivel del rival y el minuto.
+- Cada partido pesa igual en los promedios, y los intervalos salen de remuestrear partidos: con pocos partidos (un interinato), el intervalo es ancho y lo decimos.
+
+### Alcance y límites
+
+- Son eventos, no tracking: vemos dónde ocurre cada acción con balón, no los desmarques sin balón (salvo la foto 360 en jugadas a balón parado).
+- Un entrenador hereda una plantilla y un calendario. Por eso al lado de cada resultado mostramos el nivel del plantel y el de los rivales.
+- Describimos y explicamos el juego; la simulación de partidos sirve para separar juego de suerte, no para pronosticar.
+
+```{r inicio-pos, results = "asis"}
+ip <- o$inicio_pos
+g <- function(k) if (k %in% names(ip)) ip[[k]] else NA
+cat(sprintf("<p class='pie'>En toda la liga, %s de las posesiones empiezan con una recuperación, %s con una reanudación (lateral o tiro libre fuera del último tercio), %s con balón parado en ataque y %s desde el portero.</p>",
+            pct(g("Recuperación")), pct(g("Reanudación")), pct(g("Balón parado")), pct(g("Desde el portero"))))
+```
+:::
+
+::: {.seccion #contexto}
+## Con qué jugó cada uno
+
+<p class="lede">Antes de juzgar la idea de juego hay que ver la mesa que le tocó a cada entrenador: cuánto duró, qué tan bueno era su plantel, qué tan difíciles fueron sus rivales y qué tanto le sonrió la suerte.</p>
+
+```{r fichas, results = "asis"}
+fichas <- lapply(seq_len(nrow(ctx)), function(i) {
+  r <- ctx[i, ]
+  dato <- function(a, b) sprintf("<div class='ficha-dato'><span>%s</span><span>%s</span></div>", a, b)
+  sprintf("<div class='ficha'><div class='ficha-nombre' style='color:%s'>%s</div><div class='ficha-periodo'>%s a %s · %d partidos</div>%s</div>",
+          col[[r$entrenador]], r$entrenador, fecha(r$desde), fecha(r$hasta), r$partidos,
+          paste0(dato("Ganados, empatados, perdidos", paste(r$ganados, r$empatados, r$perdidos, sep = "–")),
+                 dato("Puntos por partido", num(r$pts_partido, 2)),
+                 dato("Puntos esperados por partido", num(r$xpts_partido, 2)),
+                 dato("xG a favor / en contra", paste(num(r$np_xg, 2), "/", num(r$np_xg_contra, 2))),
+                 dato("Calidad individual del plantel", signo(r$z_plantel)),
+                 dato("Nivel del equipo (xG)", num(r$nivel_club, 0)),
+                 dato("Nivel medio del rival", num(r$nivel_rival, 0)),
+                 dato("Partidos de liguilla", r$liguilla)))
+})
+cat("<div class='fichas'>", paste(fichas, collapse = ""), "</div>")
+```
+
+```{r excluidos, results = "asis"}
+ex <- o$excluidos
+if (!is.null(ex) && nrow(ex) > 0)
+  cat(sprintf("<p class='pie'>%s: con tan pocos partidos no alcanza para hablar de una idea de juego, así que no se analiza aparte.</p>",
+              paste0(ex$entrenador, " dirigió ", ex$n, ifelse(ex$n == 1, " partido", " partidos"),
+                     ifelse(is.na(ex$desde), "", paste0(" (", fecha(ex$desde), ")")), collapse = "; ")))
+```
+
+<p class="pie">Calidad individual del plantel: índice medio de sus jugadores (z fiable de CIDE OSOS, ponderado por minutos); como el índice ya descuenta el nivel del equipo, mide a la plantilla y no el resultado del entrenador. Nivel del equipo y del rival: diferencia de xG sin penales por partido en el torneo, en una escala con media 70 y 10 puntos por desviación estándar. Puntos esperados: los que daban las ocasiones de cada partido (ver abajo).</p>
+
+### ¿Juego o suerte? Cada torneo repetido 10,000 veces
+
+Cada tiro entra con una probabilidad igual a su xG. Si repetimos cada partido con las mismas ocasiones, sale la probabilidad de ganar, empatar o perder; si repetimos el torneo entero, sale el rango de puntos que el juego merecía. La barra gris va del 10% al 90% de esas repeticiones; el círculo blanco es el valor típico y el punto de color, lo que pasó.
+
+<div class="graf">
+```{r torneos-sim, fig.height = 5}
+graf_torneos_sim(o)
+```
+</div>
+
+```{r suerte, results = "asis"}
+ts <- o$torneos_sim
+arriba <- ts %>% filter(pct_mejor >= 90); abajo <- ts %>% filter(pct_mejor <= 10)
+txt <- c()
+if (nrow(arriba) > 0) txt <- c(txt, sprintf("Sacó más puntos de los que merecía su juego (por encima del 90%% de las repeticiones) en %s.",
+                                            paste0(arriba$torneo, " con ", arriba$entrenador, collapse = "; ")))
+if (nrow(abajo) > 0) txt <- c(txt, sprintf("Sacó menos de lo que merecía (por debajo del 10%%) en %s.",
+                                           paste0(abajo$torneo, " con ", abajo$entrenador, collapse = "; ")))
+if (length(txt) == 0) txt <- "En ningún torneo el resultado se salió del rango que daban las ocasiones: los puntos reflejaron el juego."
+cat("<p>", paste(txt, collapse = " "), "</p>")
+```
+:::
+
+::: {.seccion #huella}
+## La huella de cada entrenador
+
+<p class="lede">Cada punto es el promedio de un entrenador en sus partidos, medido en desviaciones frente a todos los clubes-torneo de la liga: 0 es lo normal en la Liga MX; +1, más que unos cinco de cada seis equipos.</p>
+
+<div class="graf">
+```{r huella, fig.height = 8}
+graf_huella(o)
+```
+</div>
+<p class="pie">La línea alrededor de cada punto es su intervalo del 95% (remuestreo de partidos). Si cruza el 0, ese rasgo no se distingue del promedio de la liga. Pasa el cursor para ver el valor y el percentil.</p>
+
+```{r rasgos, results = "asis"}
+for (en in ENT) cat(sprintf("<p><strong style='color:%s'>%s</strong>: %s.</p>\n", col[[en]], en, rasgos(o, en, 3)))
+```
+
+### ¿Se le reconoce por cómo juega su equipo?
+
+```{r reconocer-texto, results = "asis"}
+r <- o$reconocer
+if (!is.null(r)) cat(sprintf("Le dimos a un modelo (análisis discriminante lineal) los %d indicadores de estilo de cada partido, sin el resultado ni la fecha, y le pedimos adivinar quién dirigía. Cada partido se adivina con un modelo entrenado sin él. Acertó en %s de los casos, en promedio por entrenador; al azar se acertaría en %s. Si se revuelven al azar los nombres de los entrenadores (200 veces), un acierto así o mejor aparece en %s de los intentos.",
+                             length(KPIS_ESTILO), pct(100 * r$acierto), pct(100 * r$azar), pct(100 * r$p_valor, 1)))
+```
+
+<div class="dos-col">
+<div class="graf">
+```{r confusion, fig.width = 5.6, fig.height = 4.6}
+g <- graf_confusion(o); if (!is.null(g)) g
+```
+</div>
+<div class="graf">
+```{r efecto, fig.width = 5.8, fig.height = 4.6}
+graf_efecto(o)
+```
+</div>
+</div>
+<p class="pie">Izquierda: de los partidos que dirigió cada uno, a quién se los atribuye el modelo. La diagonal son los aciertos. Derecha: qué tanto de la variación de cada indicador entre partidos del América se explica por quién era el entrenador.</p>
+:::
+
+::: {.seccion #ataque}
+## Cómo atacaba
+
+```{r ataque-lede, results = "asis"}
+k <- function(en, kp) h(en, kp)
+fr <- sapply(ENT, function(en) sprintf("con %s llevó %s de sus posesiones al último tercio y terminó en tiro %s",
+                                       en, pct(k(en, "pos_ult3")), pct(k(en, "pos_tiro"))))
+cat(sprintf("<p class='lede'>El América %s. En la liga, %s y %s.</p>", paste(fr, collapse = "; "),
+            pct(h(ENT[1], "pos_ult3", "liga")), pct(h(ENT[1], "pos_tiro", "liga"))))
+```
+
+### Posesión contra verticalidad
+
+Cada punto gris es un club en un torneo; los de color, el América con cada entrenador. Hacia la derecha, más tiempo con el balón; hacia arriba, más yardas ganadas por segundo cuando avanza.
+
+<div class="graf">
+```{r mapa-ataque, fig.height = 5.5}
+graf_mapa_estilo(o, o$liga_t, "posesion_pct", "velocidad", "Posesión (%)", "Velocidad vertical (yardas por segundo)")
+```
+</div>
+
+### Por dónde entra al último tercio
+
+<div class="graf">
+```{r carriles, fig.height = 3.1, fig.width = 3.2 * length(ENT) + 0.5}
+graf_carriles(o)
+```
+</div>
+<p class="pie">Porcentaje de las entradas al último tercio por cada carril, visto desde quien ataca (el arco rival está a la derecha). Debajo de cada carril, el promedio de la liga.</p>
+
+### Construcción y finalización
+
+```{r tabla-ataque, results = "asis"}
+kk <- c("salida_limpia", "largo_portero", "pases_pos", "velocidad", "pos_ult3", "pos_tiro", "xg_100", "xg_transicion", "rapidas")
+tb <- o$huella %>% filter(kpi %in% kk) %>% mutate(v = fmt_v(valor)) %>%
+  select(kpi, entrenador, v) %>% pivot_wider(names_from = entrenador, values_from = v) %>%
+  left_join(o$huella %>% distinct(kpi, liga), by = "kpi") %>%
+  mutate(Indicador = etiqueta_kpi(kpi), Liga = fmt_v(liga)) %>%
+  arrange(match(kpi, kk)) %>% select(Indicador, any_of(ENT), Liga)
+cat("<div class='tabla-env'>", as.character(tabla_html(tb)), "</div>")
+```
+:::
+
+::: {.seccion #defensa}
+## Cómo defendía
+
+```{r defensa-lede, results = "asis"}
+fr <- sapply(ENT, function(en) sprintf("con %s recuperaba a una altura de %s y concedía %s xG cada 100 posesiones rivales",
+                                       en, num(h(en, "altura_recup"), 0), num(h(en, "xg_contra_100"), 1)))
+cat(sprintf("<p class='lede'>El América %s. En la liga, el promedio es %s y %s.</p>", paste(fr, collapse = "; "),
+            num(h(ENT[1], "altura_recup", "liga"), 0), num(h(ENT[1], "xg_contra_100", "liga"), 1)))
+```
+
+### Intensidad contra altura de la presión
+
+PPDA más bajo es presionar más (el rival da menos pases antes de que lo encimemos); más altura de recuperación es quitarle el balón más lejos de nuestro arco. Arriba a la izquierda están los equipos que presionan alto y fuerte.
+
+<div class="graf">
+```{r mapa-defensa, fig.height = 5.5}
+graf_mapa_estilo(o, o$liga_t, "ppda", "altura_recup", "PPDA (menos = presión más intensa)", "Altura de recuperación (x)") %>%
+  plotly::layout(xaxis = list(autorange = "reversed"))
+```
+</div>
+<p class="pie">El eje horizontal va al revés: a la derecha, más presión.</p>
+
+```{r tabla-defensa, results = "asis"}
+kk <- c("ppda", "presion_pos", "altura_recup", "recup_altas", "recupera_5s", "altura_bloque", "rival_ult3", "xg_contra_100", "xg_contra_trans")
+tb <- o$huella %>% filter(kpi %in% kk) %>% mutate(v = fmt_v(valor)) %>%
+  select(kpi, entrenador, v) %>% pivot_wider(names_from = entrenador, values_from = v) %>%
+  left_join(o$huella %>% distinct(kpi, liga), by = "kpi") %>%
+  mutate(Indicador = etiqueta_kpi(kpi), Liga = fmt_v(liga)) %>%
+  arrange(match(kpi, kk)) %>% select(Indicador, any_of(ENT), Liga)
+cat("<div class='tabla-env'>", as.character(tabla_html(tb)), "</div>")
+```
+:::
+
+::: {.seccion #ajustes}
+## Cómo ajustaba según el partido
+
+<p class="lede">Un entrenador se conoce por lo que cambia cuando el partido cambia. Cada punto es cuánto se movió el América en esa situación <strong>por encima o por debajo de lo que se mueve cualquier equipo de la liga</strong> en la misma situación. Si la línea cruza el 0, ese ajuste es el mismo que haría cualquiera.</p>
+
+### Según el marcador
+
+Comparado con cuando va empatado.
+
+<div class="graf">
+```{r aj-marcador, fig.width = 10, fig.height = alto_ajustes(o, "Marcador")}
+g <- graf_ajustes(o, "Marcador"); if (!is.null(g)) g
+```
+</div>
+
+### En casa
+
+Comparado con cuando juega de visita.
+
+<div class="graf">
+```{r aj-local, fig.width = 10, fig.height = alto_ajustes(o, "Localía")}
+g <- graf_ajustes(o, "Localía"); if (!is.null(g)) g
+```
+</div>
+
+### Contra el 20% más fuerte de la liga
+
+Comparado con el resto de los rivales.
+
+<div class="graf">
+```{r aj-rival, fig.width = 10, fig.height = alto_ajustes(o, "Rival")}
+g <- graf_ajustes(o, "Rival"); if (!is.null(g)) g
+```
+</div>
+
+### En el último cuarto de hora
+
+Del minuto 75 en adelante, comparado con los primeros 30 minutos.
+
+<div class="graf">
+```{r aj-minuto, fig.width = 10, fig.height = alto_ajustes(o, "Minuto")}
+g <- graf_ajustes(o, "Minuto"); if (!is.null(g)) g
+```
+</div>
+
+```{r ajustes-texto, results = "asis"}
+for (en in ENT) {
+  f <- frases_ajustes(o, en)
+  if (!is.null(f)) cat(sprintf("<p><strong style='color:%s'>%s</strong>. %s</p>\n", col[[en]], en, paste(f, collapse = " ")))
+}
+```
+:::
+
+::: {.seccion #evolucion}
+## Cómo cambió con el tiempo
+
+<p class="lede">La banda gris es la mitad central de la liga en cada torneo; la línea punteada, su mediana. Elige el indicador en el menú.</p>
+
+<div class="graf">
+```{r evolucion, fig.height = 5.6}
+graf_evolucion(o, c("xg_100", "xg_contra_100", "posesion_pct", "velocidad", "ppda", "altura_recup", "recupera_5s",
+                    "salida_limpia", "pos_tiro", "field_tilt"))
+```
+</div>
+:::
+
+::: {.seccion #jugadores}
+## Con qué jugadores
+
+```{r jug-tabla, results = "asis"}
+u <- o$uso$resumen %>% mutate(entrenador = factor(entrenador, levels = ENT)) %>% arrange(entrenador)
+cb <- o$cambios
+tb <- u %>% left_join(cb, by = c("entrenador")) %>%
+  transmute(Entrenador = as.character(entrenador), Partidos = partidos, `Jugadores usados` = jugadores,
+            `Edad media (por minutos)` = num(edad_media, 1),
+            `Titulares que cambian entre partidos` = num(cambios_xi, 1),
+            `% de minutos de los 14 más usados` = num(pct_min_top14, 0),
+            `% de minutos de jugadores heredados` = ifelse(is.na(pct_min_heredados), NA, num(pct_min_heredados, 0)),
+            `Minuto del primer cambio` = ifelse(is.na(minuto_primero), NA, num(minuto_primero, 0)),
+            `Impacto de sus cambios (OBV)` = ifelse(is.na(impacto_obv), NA, paste0(signo(impacto_obv), " ± ", num(1.96 * ee_obv, 2))))
+cat("<div class='tabla-env'>", as.character(tabla_html(tb)), "</div>")
+```
+<p class="pie">Heredados: jugadores que ya habían jugado con el club antes de que llegara ese entrenador (no se calcula para el primero de la base). Impacto de los cambios: diferencia de OBV del equipo contra el rival por 90 minutos en los 15 minutos después del cambio menos los 15 antes, descontando lo que pasa en promedio en la liga en ese minuto y con ese marcador; con su intervalo del 95%.</p>
+
+### Dónde están los minutos
+
+<div class="graf">
+```{r posiciones, fig.height = 0.8 + 0.55 * length(ENT), fig.width = 11}
+graf_posiciones(o)
+```
+</div>
+
+```{r formaciones, results = "asis"}
+fo <- o$formaciones %>% group_by(entrenador) %>% slice_max(pct, n = 3, with_ties = FALSE) %>%
+  summarise(txt = paste0(formacion, " (", round(pct), "%)", collapse = ", "), .groups = "drop") %>%
+  mutate(entrenador = factor(entrenador, levels = ENT)) %>% arrange(entrenador)
+cat(sprintf("<p><strong>Formaciones más usadas.</strong> %s.</p>", paste0(fo$entrenador, ": ", fo$txt, collapse = ". ")))
+```
+
+### ¿Mejoró a sus jugadores?
+
+```{r desarrollo-texto, results = "asis"}
+dv <- o$desarrollo
+if (!is.null(dv)) {
+  cat(sprintf("<p>Tomamos a cada jugador que siguió en el club de un torneo al siguiente (con %d minutos o más en los dos) y medimos cuánto cambió su índice. No basta con el cambio bruto: quien tuvo un torneo muy bueno suele bajar en el siguiente, quien tuvo uno malo suele subir, y los jóvenes mejoran con la edad. Por eso comparamos el cambio con lo que le pasa en promedio a un jugador de la liga con su mismo nivel previo, edad y posición (%s pares de torneos). Lo que queda es la mejora que se le puede atribuir al entorno del club: el entrenador y su cuerpo técnico.</p>",
+              dv$minimo, format(dv$n_pares_liga, big.mark = ",")))
+}
+```
+
+<div class="graf">
+```{r desarrollo, fig.height = 0.9 + 0.6 * length(ENT), fig.width = 10}
+g <- graf_desarrollo(o); if (!is.null(g)) g
+```
+</div>
+
+```{r desarrollo-hallazgo, results = "asis"}
+if (!is.null(dv)) {
+  r <- dv$resumen %>% filter(entrenador %in% ENT) %>% mutate(entrenador = factor(entrenador, levels = ENT)) %>% arrange(entrenador)
+  frase <- function(i) {
+    x <- r[i, ]
+    veredicto <- if (x$lo > 0) "sus jugadores mejoraron más de lo esperado" else if (x$hi < 0) "sus jugadores rindieron menos de lo esperado" else "sus jugadores cambiaron lo normal: no se distingue de la liga"
+    sprintf("<strong style='color:%s'>%s</strong>: %s (%s; mejor que el %s%% de los clubes-torneo).", col[[as.character(x$entrenador)]],
+            x$entrenador, veredicto, signo(x$mejora), x$percentil)
+  }
+  cat("<p>", paste(vapply(seq_len(nrow(r)), frase, character(1)), collapse = " "), "</p>")
+  faltan <- setdiff(ENT, r$entrenador)
+  if (length(faltan) > 0)
+    cat(sprintf("<p class='pie'>%s: no hay un torneo completo suyo con el torneo anterior en la base para comparar.</p>", paste(faltan, collapse = ", ")))
+  top <- dv$jugadores %>% filter(entrenador %in% ENT) %>% group_by(entrenador) %>% slice_max(mejora, n = 3, with_ties = FALSE) %>% ungroup() %>%
+    mutate(entrenador = factor(entrenador, levels = ENT)) %>% arrange(entrenador, desc(mejora)) %>%
+    transmute(Entrenador = as.character(entrenador), Jugador = player_name, Posición = ETIQUETA_SUB[subgrupo], Edad = edad,
+              `De` = paste0(torneo, " (", signo(z_antes), ")"), `A` = paste0(torneo_sig, " (", signo(z_despues), ")"),
+              `Mejora sobre lo esperado` = signo(mejora))
+  cat("<p class='pie'>Los tres jugadores que más crecieron con cada uno:</p>")
+  cat("<div class='tabla-env'>", as.character(tabla_html(top, alinear_num = FALSE)), "</div>")
+}
+```
+
+### Los fichajes de cada etapa
+
+<div class="graf">
+```{r fichajes, fig.height = 5.4}
+g <- graf_fichajes(o); if (!is.null(g)) g
+```
+</div>
+<p class="pie">Cada punto es un jugador que llegó al club durante esa etapa y jugó 300+ minutos en su primer torneo. Sobre la diagonal, rindió más con el América que en su club anterior; el tamaño crece con sus minutos. El nivel es el índice de CIDE OSOS: rendimiento por 90 minutos frente a los de su posición, descontando el contexto de su equipo y contraído hacia 0 cuando tiene pocos minutos.</p>
+
+```{r fichajes-texto, results = "asis"}
+fi <- o$fichajes %>% filter(!is.na(entrenador_torneo)) %>% group_by(entrenador_torneo) %>%
+  summarise(n = n(), rindio = sum(rindio == "Rindió"), poco = sum(rindio == "Jugó poco"), .groups = "drop")
+if (nrow(fi) > 0)
+  cat(sprintf("<p>Llegadas por etapa. %s.</p>", paste0(fi$entrenador_torneo, ": ", fi$n, " (", fi$rindio, " por encima del promedio de su posición en su primer torneo; ",
+                    fi$poco, " con menos de 450 minutos)", collapse = ". ")))
+```
+:::
+
+::: {.seccion #balon-parado}
+## Balón parado
+
+```{r bp, results = "asis"}
+bp <- o$balon_parado %>% mutate(entrenador = factor(entrenador, levels = ENT)) %>%
+  mutate(celda = paste0(round(indice), " (", goles, " goles, ", num(por_partido, 1), " por partido)")) %>%
+  select(lado, tipo, entrenador, celda) %>% arrange(entrenador) %>%
+  pivot_wider(names_from = entrenador, values_from = celda) %>% arrange(lado, tipo) %>%
+  rename(Lado = lado, Tipo = tipo)
+cat("<p class='lede'>Índice de xG por saque: xG sin penales de todos los tiros que salen de la jugada, dividido entre el número de saques, con 100 = promedio de la liga. A favor, más es mejor; en contra, menos es mejor.</p>")
+cat("<div class='tabla-env'>", as.character(tabla_html(bp, alinear_num = FALSE)), "</div>")
+pe <- o$persistencia
+if (!is.null(pe)) {
+  r1 <- pe$r[pe$indicador == "xG por córner a favor"]
+  if (length(r1) == 1) cat(sprintf("<div class='nota'>Ojo al leerlo: de un torneo al siguiente, el xG por córner de un club se repite poco (correlación %s entre clubes). Con unos 80 córners por torneo, la diferencia entre etapas puede ser azar; el primer contacto y la organización se repiten más.</div>", num(r1, 2)))
+}
+```
+:::
+
+::: {.seccion #accion}
+## Qué hacer con esto
+
+```{r accion, results = "asis"}
+ult <- o$ultimo
+tb <- o$tablero %>% filter(sentido != 0, !is.na(.data[[ult]])) %>%
+  mutate(actual = .data[[ult]], cumple = ifelse(sentido == 1, actual >= objetivo, actual <= objetivo),
+         # Brecha en unidades del rango intercuartil de la liga, para comparar indicadores distintos
+         brecha = sentido * (actual - objetivo) / pmax(q75 - q25, 1e-9)) %>% arrange(cumple, brecha)
+cat(sprintf("<p class='lede'>Tablero para el cuerpo técnico de %s. El objetivo de cada indicador es el nivel del mejor cuarto de la liga (el 25%% de clubes-torneo con mejor valor). Los que no se cumplen van primero, ordenados por qué tan lejos están de la meta en relación con la variación normal de la liga.</p>", ult))
+t2 <- tb %>% transmute(Indicador = etiqueta, Fase = fase, Actual = fmt_v(actual), Objetivo = fmt_v(objetivo),
+                       Estado = ifelse(cumple, "Cumple", "Por debajo"), `Qué mide` = definicion)
+cat("<div class='tabla-env'>", as.character(tabla_html(t2, alinear_num = FALSE)), "</div>")
+falta <- tb %>% filter(!cumple) %>% head(3)
+if (nrow(falta) > 0) {
+  cat("<div class='accion'><div class='accion-titulo'>Prioridades</div><ul>")
+  for (i in seq_len(nrow(falta))) cat(sprintf("<li><strong>%s</strong>: de %s a %s. %s</li>", falta$etiqueta[i],
+                                              fmt_v(falta$actual[i]), fmt_v(falta$objetivo[i]), falta$definicion[i]))
+  cat("</ul></div>")
+}
+```
+
+### El perfil que le falta al plantel
+
+```{r carencias, results = "asis"}
+ca <- o$carencias %>% head(2)
+cat(sprintf("<p>Comparamos al mejor jugador del América en cada posición (temporada %s, 450+ minutos) con el mejor de un club típico de la liga. Las posiciones con más brecha son <strong>%s</strong>. Estos son los candidatos de la liga con mejor índice en esas posiciones, de 28 años o menos:</p>",
+            o$temporada_plantel, paste(tolower(ca$etiqueta), collapse = " y ")))
+if (nrow(o$candidatos) > 0) {
+  tc <- o$candidatos %>% transmute(Posición = posicion, Jugador = player_name, Club = club, Edad = round(edad),
+                                   Minutos = round(minutos_total), `Índice (z fiable)` = num(z_fiable, 2))
+  cat("<div class='tabla-env'>", as.character(tabla_html(tc)), "</div>")
+}
+```
+:::
+
+::: {.seccion #anexo}
+## Anexo: los modelos y sus límites
+
+### El índice de jugadores
+
+El nivel de los jugadores, el plantel y los fichajes sale del modelo de scouting de CIDE OSOS. Para cada jugador se mide su rendimiento por 90 minutos en 13 métricas agrupadas en cinco índices (ofensivo, creación, defensivo, progresión y consistencia), frente a los de su posición, descontando el nivel de su equipo y del rival, y contrayendo hacia 0 cuando tiene pocos minutos.
+
+```{r anexo-val, results = "asis"}
+v <- o$validacion
+if (!is.null(v$rendimiento)) {
+  r1 <- v$rendimiento %>% filter(predictor == "z compuesto ex ante", grepl("^z", resultado))
+  r0 <- v$rendimiento %>% filter(predictor == "% minutos ex ante", grepl("^z", resultado))
+  if (nrow(r1) == 1) cat(sprintf("<p>Probado contra %d traspasos reales dentro de la liga: el índice antes del traspaso se correlaciona %s [%s, %s] con el rendimiento en el club nuevo; los minutos que jugaba antes, %s. En cada torneo el modelo solo vio partidos anteriores.</p>",
+                                 as.integer(r1$n), num(r1$rho, 2), num(r1$lo, 2), num(r1$hi, 2), if (nrow(r0)) num(r0$rho, 2) else "s/d"))
+}
+if (!is.null(v$retest)) {
+  zc <- v$retest$r[v$retest$indice == "z_compuesto"]; ob <- v$retest$r[v$retest$indice == "obv_p90_res"]
+  if (length(zc) == 1) cat(sprintf("<p>Es un rasgo estable: de un torneo al siguiente se repite con correlación %s; el OBV, %s.</p>", num(zc, 2), num(ob, 2)))
+}
+```
+
+### Qué tan estable es cada métrica de equipo
+
+```{r anexo-pers, results = "asis"}
+pe <- o$persistencia
+if (!is.null(pe)) {
+  tp <- pe %>% transmute(Indicador = indicador, `Correlación entre torneos` = num(r, 2), `IC 95%` = paste0("[", num(lo, 2), ", ", num(hi, 2), "]"))
+  cat("<p>Correlación entre clubes de un torneo al siguiente. Cerca de 1, la métrica describe al club; cerca de 0, cambia por azar.</p>")
+  cat("<div class='tabla-env'>", as.character(tabla_html(tp)), "</div>")
+}
+```
+
+### Datos y reproducibilidad
+
+<p>Datos de eventos y 360 de Hudl StatsBomb, Liga MX. El reporte muestra solo resultados agregados, no los datos. Todo se reproduce con el código del proyecto: <code>R/02_pipeline.R</code> → <code>R/03_validacion.R</code> → <code>R/04_tactico.R</code> → <code>R/05a_entrenadores.R</code> → <code>R/05_entrenadores.R</code> → este reporte. Entrenador de cada partido: lista de partidos de la API; en su defecto, <code>config/entrenadores_manual.csv</code>.</p>
+:::
+
+<div class="pie-final">CIDE OSOS · Centro de Investigación y Docencia Económicas · Hackathon ISAC 2026, Club América.</div>

@@ -1,0 +1,98 @@
+/* CIDE OSOS — reporte "La historia de los entrenadores" */
+@font-face { font-family: "Barlow"; font-weight: 400; src: url("fonts/barlow-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 500; src: url("fonts/barlow-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow"; font-weight: 600; src: url("fonts/barlow-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 600; src: url("fonts/barlow-condensed-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 700; src: url("fonts/barlow-condensed-latin-700-normal.woff2") format("woff2"); }
+
+:root {
+  --tinta: #0E2240; --tinta-2: #1B3A63; --texto: #1F2D40; --texto-2: #46566C; --texto-3: #6E7C8F;
+  --linea: #DCE1E8; --papel: #F3F5F8; --acento: #B8862B; --resalte: #FBF3DF; --datos: #2E6DA4;
+  --ancho-texto: 44rem; --ancho: 68rem;
+}
+html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+body { margin: 0; background: #FFFFFF; color: var(--texto); font-family: "Barlow", "Helvetica Neue", Arial, sans-serif;
+       font-size: 17.5px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+.main-container, .container-fluid { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+
+/* Navegacion fija */
+.rep-nav { position: sticky; top: 0; z-index: 50; background: var(--tinta); border-bottom: 3px solid var(--acento); }
+.rep-nav-in { max-width: var(--ancho); margin: 0 auto; padding: 0 24px; display: flex; gap: 22px; align-items: center;
+              overflow-x: auto; white-space: nowrap; height: 52px; scrollbar-width: none; }
+.rep-nav-in::-webkit-scrollbar { display: none; }
+.rep-nav a { color: #C9D4E3; text-decoration: none; font-family: "Barlow Condensed", sans-serif; font-weight: 600; font-size: 17px; }
+.rep-nav a:hover, .rep-nav a:focus-visible { color: #FFFFFF; outline: none; text-decoration: underline; text-underline-offset: 6px; }
+.rep-nav .marca { color: #FFFFFF; font-weight: 700; font-size: 19px; margin-right: 6px; }
+
+/* Portada */
+.portada { background: var(--tinta); color: #FFFFFF; }
+.portada-in { max-width: var(--ancho); margin: 0 auto; padding: 56px 24px 36px; }
+.portada h1 { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: clamp(44px, 7vw, 84px);
+              line-height: 0.95; margin: 0 0 18px; letter-spacing: -0.01em; max-width: 17ch; color: #FFFFFF; }
+.portada .tesis { font-size: 21px; line-height: 1.5; color: #D6DFEA; max-width: 40rem; margin: 0 0 8px; }
+.portada .creditos { color: #9FB0C6; font-size: 14.5px; margin-top: 18px; }
+.portada-graf { background: #FFFFFF; border-radius: 6px; padding: 14px 14px 4px; margin-top: 30px; }
+.portada-graf p { max-width: none; margin: 0; }
+.portada-graf img { width: 100%; height: auto; display: block; }
+
+/* Secciones */
+.seccion { max-width: var(--ancho); margin: 0 auto; padding: 56px 24px 8px; }
+.seccion + .seccion { border-top: 1px solid var(--linea); }
+h2 { font-family: "Barlow Condensed", sans-serif; font-weight: 700; color: var(--tinta); font-size: 42px; line-height: 1.02;
+     margin: 0 0 14px; max-width: 22ch; }
+h3 { font-family: "Barlow Condensed", sans-serif; font-weight: 600; color: var(--tinta); font-size: 26px; line-height: 1.1;
+     margin: 38px 0 8px; }
+p, ul, ol { max-width: var(--ancho-texto); }
+p { margin: 0 0 14px; }
+li { margin-bottom: 6px; }
+.lede { font-size: 20.5px; line-height: 1.5; color: var(--tinta-2); max-width: 42rem; margin-bottom: 22px; }
+strong { color: var(--tinta); font-weight: 600; }
+a { color: var(--datos); }
+
+/* Graficas */
+.graf { margin: 18px 0 8px; }
+.graf p { max-width: none; margin: 0; }
+.graf img { width: 100%; max-width: 100%; height: auto; }
+.graf .html-widget, .graf .plotly { width: 100% !important; max-width: 100%; }
+.seccion, .portada-in { overflow-x: clip; }
+code { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.86em; background: var(--papel); padding: 1px 5px; border-radius: 3px; }
+.pie { color: var(--texto-3); font-size: 14.5px; line-height: 1.45; max-width: var(--ancho-texto); margin: 4px 0 22px; }
+.dos-col { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+@media (max-width: 860px) { .dos-col { grid-template-columns: 1fr; } }
+
+/* Fichas de cada entrenador */
+.fichas { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0; margin: 22px 0 10px;
+          border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); }
+.ficha { padding: 18px 18px 16px 0; }
+.ficha + .ficha { border-left: 1px solid var(--linea); padding-left: 18px; }
+.ficha-nombre { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 25px; line-height: 1.05; }
+.ficha-periodo { color: var(--texto-3); font-size: 14.5px; margin-bottom: 10px; }
+.ficha-dato { display: flex; justify-content: space-between; gap: 10px; font-size: 15.5px; padding: 3px 0; border-bottom: 1px dotted #E6EAF0; }
+.ficha-dato span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--tinta); white-space: nowrap; }
+@media (max-width: 760px) { .ficha + .ficha { border-left: 0; padding-left: 0; border-top: 1px solid var(--linea); } }
+
+/* Recuadro para el cuerpo tecnico */
+.accion { background: var(--resalte); border-left: 4px solid var(--acento); padding: 16px 20px; margin: 22px 0; max-width: 50rem; }
+.accion > :last-child { margin-bottom: 0; }
+.accion-titulo { font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 21px; color: var(--tinta); margin-bottom: 6px; }
+.nota { background: var(--papel); border-left: 4px solid var(--linea); padding: 14px 18px; margin: 18px 0; max-width: 50rem; font-size: 15.5px; color: var(--texto-2); }
+
+/* Tablas */
+.tabla-env { overflow-x: auto; margin: 14px 0 20px; }
+table.tabla { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+table.tabla th { text-align: left; font-weight: 600; color: var(--texto-2); font-size: 13.5px; padding: 8px 10px; border-bottom: 1.5px solid var(--tinta); vertical-align: bottom; }
+table.tabla td { padding: 8px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+table.tabla .num { text-align: right; }
+table.tabla tr.club td { background: var(--resalte); font-weight: 600; }
+
+/* Definiciones del marco */
+dl.marco { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 0; max-width: 54rem; margin: 18px 0; }
+dl.marco dt { font-weight: 600; color: var(--tinta); padding: 10px 16px 10px 0; border-top: 1px solid var(--linea); }
+dl.marco dd { margin: 0; padding: 10px 0; border-top: 1px solid var(--linea); color: var(--texto); }
+@media (max-width: 640px) { dl.marco { grid-template-columns: 1fr; } dl.marco dd { border-top: 0; padding-top: 0; } }
+
+.pie-final { max-width: var(--ancho); margin: 40px auto 0; padding: 26px 24px 50px; color: var(--texto-3); font-size: 14px; border-top: 1px solid var(--linea); }
+
+@media (max-width: 640px) { body { font-size: 16.5px; } h2 { font-size: 33px; } .seccion { padding-top: 40px; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+@media print { .rep-nav { display: none; } .seccion { break-inside: avoid-page; } }

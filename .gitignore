@@ -1,0 +1,12 @@
+.Renviron
+.Rhistory
+.RData
+.Rproj.user/
+data/
+outputs/
+rsconnect/
+*.rds
+*DATOS_SIMULADOS*.html
+*.knit.md
+*_files/
+*_cache/
